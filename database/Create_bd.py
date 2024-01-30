@@ -1,20 +1,36 @@
 import sqlite3
 
-# Создаем подключение к базе данных (если её нет, она будет автоматически создана)
-conn = sqlite3.connect('mydatabase.db')
+# Создание подключения к базе данных (или создание файла, если он не существует)
+conn = sqlite3.connect('bot_database.db')
 
-# Создаем объект курсора, который используется для выполнения SQL-запросов
+# Создание курсора для выполнения SQL-запросов
 cursor = conn.cursor()
 
-# Создаем таблицу
+
 cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
+    CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         username TEXT,
-        email TEXT
+        action TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
 ''')
 
-# Сохраняем изменения и закрываем соединение
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        user_id INTEGER PRIMARY KEY,
+        username TEXT,
+        comment TEXT,
+        role TEXT DEFAULT 'user',
+        daily_limit INTEGER DEFAULT 0,
+        monthly_limit INTEGER DEFAULT 0,
+        yearly_limit INTEGER DEFAULT 0,
+        last_action_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id)
+    )
+''')
+
 conn.commit()
 conn.close()

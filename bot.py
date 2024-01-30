@@ -5,7 +5,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
 from keyboards.main_menu import set_main_menu
-# from handlers import user_handlers
+from handlers import user_handlers
 
 
 # Инициализируем логгер
@@ -35,7 +35,7 @@ async def main():
     await set_main_menu(bot)
 
     # Регистрируем роутеры в диспетчер
-    # dp.include_router(user_handlers.router)
+    dp.include_router(user_handlers.router)
     #################################
 
     # Пропускаем накопившиеся апдейты и запускаем polling
