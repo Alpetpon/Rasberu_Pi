@@ -5,10 +5,14 @@ from aiogram.types import ReplyKeyboardRemove, \
 
 button1: KeyboardButton = KeyboardButton(text='1')
 button2: KeyboardButton = KeyboardButton(text='2')
-button3: KeyboardButton = KeyboardButton(text='3')
 
-main_keyboard: ReplyKeyboardMarkup = ReplyKeyboardMarkup(keyboard=[[button1], [button2], [button3]],
+main_keyboard: ReplyKeyboardMarkup = ReplyKeyboardMarkup(keyboard=[[button1], [button2]],
                                                           resize_keyboard=True)
 
+admin_button: KeyboardButton = KeyboardButton(text = "Admin")
+
+admin_panel: ReplyKeyboardMarkup = ReplyKeyboardMarkup(keyboard=[[button1], [button2], [admin_button]], resize_keyboard=True)
 
 
+Append_user: KeyboardButton = KeyboardButton(text = "Append user")
+admin_keyboard: ReplyKeyboardMarkup = ReplyKeyboardMarkup(keyboard = [[Append_user]])

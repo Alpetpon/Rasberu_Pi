@@ -43,10 +43,10 @@ def connect():
     return sqlite3.connect('bot_database.db')
 
 # Функция проверки существования пользователя
-def user_exists(user_id):
+def user_exists(username):
     conn = connect()
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
+    cursor.execute("SELECT username  FROM users WHERE username=?", (username,))
     result = cursor.fetchone()
     conn.close()
     return result is not None
