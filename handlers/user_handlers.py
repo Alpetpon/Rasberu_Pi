@@ -84,3 +84,13 @@ async def process_username(message: Message, state: FSMContext):
     await state.set_state(Bot.admin_panel)
 
 
+# Обработчик для кнопки "Действие 1"
+@router.message(F.text == "Действие 1")
+async def handler_button_1(message: Message, state: FSMContext):
+    await message.answer(f'аоаооаоаоаоа213412312')
+
+
+# Обработчик для кнопки "Действие 2"
+@router.message(F.text == "Действие 2")
+async def handler_button_2(message: Message, state: FSMContext):
+    await message.answer(f'аоаооаоаоаоа')
