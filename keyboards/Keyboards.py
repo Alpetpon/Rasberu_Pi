@@ -1,18 +1,31 @@
-from aiogram.types import ReplyKeyboardRemove, \
-    ReplyKeyboardMarkup, KeyboardButton, \
-    InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from lexicon.lexicon_ru import LEXICON_RU
 
 
-button1: KeyboardButton = KeyboardButton(text='1')
-button2: KeyboardButton = KeyboardButton(text='2')
+# Функция для создания автоматической клавиатуры
+def create_standard_kb(width: int,
+                       *args: str,
+                       **kwargs: str) -> ReplyKeyboardMarkup:
+    # Инициализируем билдер
+    kb_builder = ReplyKeyboardBuilder()
+    # Инициализируем список для кнопок
+    buttons: list[KeyboardButton] = []
 
-main_keyboard: ReplyKeyboardMarkup = ReplyKeyboardMarkup(keyboard=[[button1], [button2]],
-                                                          resize_keyboard=True)
+    # Загружаем список кнопками из аргументов args и kwargs
+    if args:
+        for button in args:
+            buttons.append(KeyboardButton(
+                text=LEXICON_RU[button] if button in LEXICON_RU else button,
+                callback_data=button))
+    if kwargs:
+        for button, text in kwargs.items():
+            buttons.append(KeyboardButton(
+                text=text,
+                callback_data=button))
 
-admin_button: KeyboardButton = KeyboardButton(text = "Admin")
+    # Распаковываем список с кнопками в билдер методом row с параметром widht
+    kb_builder.row(*buttons, width=width)
 
-admin_panel: ReplyKeyboardMarkup = ReplyKeyboardMarkup(keyboard=[[button1], [button2], [admin_button]], resize_keyboard=True)
-
-
-Append_user: KeyboardButton = KeyboardButton(text = "Append user")
-admin_keyboard: ReplyKeyboardMarkup = ReplyKeyboardMarkup(keyboard = [[Append_user]])
+    # Возвращаем объект инлайн-клавиатуры
+    return kb_builder.as_markup(resize_keyboard=True)
