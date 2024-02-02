@@ -1,14 +1,14 @@
-from aiogram import F, Router
-from aiogram.filters import Command, CommandStart
+from aiogram import F, Router, Bot
+from aiogram.filters import  CommandStart
 from aiogram.types import Message
 from database import database as db
-from keyboards import Keyboards as kb
 from aiogram.filters.state import State, StatesGroup, StateFilter
 from aiogram.fsm.context import FSMContext
 from Token import *
 from keyboards.Keyboards import create_standard_kb
 from aiogram.types import ReplyKeyboardRemove
 from lexicon.lexicon_ru import LEXICON_RU
+from bot import bot
 
 router = Router()
 
@@ -35,21 +35,21 @@ async def process_start_command(message: Message, state: FSMContext):
         if not db.user_exists(user_id):
             db.add_user(user_id, username, "Admin_Start")
 
-        await log_message(user_id, message.text, username=username)
+        await log_message(user_id, message.text)
         await state.set_state(Bot.admin_panel)
     else:
         username = message.from_user.username
         if not db.user_exists(username):
             await message.answer(LEXICON_RU['no_admin_user'])
-            await log_message(user_id, message.text, username=username)
             await state.set_state(Bot.no_admin_user)
         else:
             db.add_user(user_id, username, "No comment")
-            await message.answer(LEXICON_RU['yes_admin_user'])
+            await message.answer(LEXICON_RU['yes_admin_user'],  reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2'))
+            await log_message(user_id, message.text)
             await state.set_state(Bot.yes_admin_user)
 
     await state.set_state(Bot.start)
-    await message.answer(reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2'))
+
 
 
 async def log_message(user_id, action):
@@ -69,12 +69,15 @@ async def Admin_Append(message: Message , state: FSMContext):
     await state.set_state(Bot.waiting_for_username)
 
 
+
+
 @router.message(StateFilter(Bot.waiting_for_username))
 async def process_username(message: Message, state: FSMContext):
     username = message.text
+    user_info = await bot.get_chat(username)
 
-    # Добавить пользователя в базу данных
-    user_id = 1
+    user_id = user_info.id
+
     comment = f"Добавлен через админскую команду"
 
     db.add_user(user_id, username, comment)

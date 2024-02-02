@@ -25,7 +25,6 @@ cursor.execute('''
         user_id INTEGER PRIMARY KEY,
         username TEXT,
         comment TEXT,
-        role TEXT DEFAULT 'user',
         daily_limit INTEGER DEFAULT 0,
         monthly_limit INTEGER DEFAULT 0,
         yearly_limit INTEGER DEFAULT 0,

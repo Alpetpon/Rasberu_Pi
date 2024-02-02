@@ -11,6 +11,12 @@ from handlers import user_handlers, other_handlers
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
 
+# Загружаем конфиг в переменную config
+config: Config = load_config()
+
+# Инициализируем бот и диспетчер
+bot = Bot(token=config.tg_bot.token,
+          parse_mode='HTML')
 
 # Функция конфигурирования и запуска бота
 async def main():
@@ -23,12 +29,7 @@ async def main():
     # Выводим в консоль информацию о начале запуска бота
     logger.info('Starting bot')
 
-    # Загружаем конфиг в переменную config
-    config: Config = load_config()
 
-    # Инициализируем бот и диспетчер
-    bot = Bot(token=config.tg_bot.token,
-              parse_mode='HTML')
     dp = Dispatcher()
 
     # Настраиваем главное меню бота
