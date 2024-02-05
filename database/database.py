@@ -8,7 +8,7 @@ async def create_database():
             "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, username TEXT, comment TEXT, role TEXT, daily_limit INTEGER DEFAULT 0, monthly_limit INTEGER DEFAULT 0, yearly_limit INTEGER DEFAULT 0, last_action TIMESTAMP, permissions TEXT DEFAULT 0  )")
         await db.commit()
         await db.execute(
-            "CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER , username TEXT, action TEXT, stamp TIMESTAMP)")
+            "CREATE TABLE IF NOT EXISTS logs (user_id INTEGER , username TEXT, action TEXT, last_action TIMESTAMP)")
         await db.commit()
         await db.execute('CREATE TABLE IF NOT EXISTS all_users (user_id INTEGER PRIMARY KEY, username TEXT)')
         await db.commit()
@@ -26,8 +26,6 @@ async def add_user_to_users_table(user_id: str, username: str, comment: str, rol
             'INSERT OR IGNORE INTO users (user_id, username, comment, role, last_action, permissions) VALUES (?, ?, ?, ?, ?, ?)',
             (user_id, username, comment, role, current_time, permis))
         await db.commit()
-
-
 
 async def if_username_in_user_table():
     async with aiosqlite.connect('userdata.db') as conn:
@@ -65,3 +63,13 @@ async def all_info_about_users_button():
         row[i][5] = str(row[i][5])
         row[i][6] = str(row[i][6])
     return row
+
+async def add_logs(user_id, username, text, last_action):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('INSERT INTO logs (user_id, username, action, last_action) VALUES (?,?,?,?)', (user_id, username, text, last_action))
+        await db.commit()
+
+async def change_last_action_in_table_users(user_id, current_time):
+    async with aiosqlite.connect('userdata.db') as conn:
+        await conn.execute('UPDATE users SET last_action = ? WHERE user_id = ?', (current_time, user_id))
+        await conn.commit()
