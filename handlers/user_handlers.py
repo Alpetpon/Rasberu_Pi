@@ -47,12 +47,12 @@ async def response_all_users_button(message: Message):
 
 @router.message(F.text)
 async def append_user_to_user_table(message: Message):
-    username_comment_perms = message.text.split('/')
-    current_time = datetime.now().isoformat()
-    user_id_by_username = await db.get_user_id_from_all_users_table(username_comment_perms[0])
-    await db.add_user_by_admin_to_user_table(user_id_by_username, username_comment_perms[0], username_comment_perms[1], username_comment_perms[2], current_time, username_comment_perms[3])
-    await message.answer(f"Пользователь {username_comment_perms[0]} успешно зарегистрирован.")
-
+    if '/' in message.text:
+        username_comment_perms = message.text.split('/')
+        current_time = datetime.now().isoformat()
+        user_id_by_username = await db.get_user_id_from_all_users_table(username_comment_perms[0])
+        await db.add_user_by_admin_to_user_table(user_id_by_username, username_comment_perms[0], username_comment_perms[1], username_comment_perms[2], current_time, username_comment_perms[3])
+        await message.answer(f"Пользователь {username_comment_perms[0]} успешно зарегистрирован.")
 
 
 
