@@ -1,99 +1,69 @@
+from datetime import datetime
+
 from aiogram import F, Router, Bot
 from aiogram.filters import  CommandStart
 from aiogram.types import Message
 from database import database as db
-from aiogram.filters.state import State, StatesGroup, StateFilter
 from aiogram.fsm.context import FSMContext
 from Token import *
 from keyboards.Keyboards import create_standard_kb
 from aiogram.types import ReplyKeyboardRemove
 from lexicon.lexicon_ru import LEXICON_RU
-from bot import bot
 
 router = Router()
 
-
-class Bot(StatesGroup):
-    start = State()
-    admin_panel = State()
-    no_admin_user = State()
-    yes_admin_user = State()
-    waiting_for_username = State()
-    push_1 = State()
-    push_2 = State()
-
-
 @router.message(CommandStart())
-async def process_start_command(message: Message, state: FSMContext):
-    user_id = message.from_user.id
-    if message.from_user.id == int(admin_alex_id):
+async def process_start_command(message: Message):
+    await db.create_database()
+    await db.add_user_to_all_user_table(str(message.from_user.id), message.from_user.username)
+    if message.from_user.id == admin_matvey_id:
         await message.answer(
             text=LEXICON_RU['admin_panel'],
-            reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2', 'BUTTONS_ADMIN')
+            reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2', 'BUTTONS_ADMIN', 'Генерация слова', 'Все юзеры')
         )
-        username = message.from_user.username
-        if not db.user_exists(user_id):
-            db.add_user(user_id, username, "Admin_Start")
-
-        await log_message(user_id, message.text)
-        await state.set_state(Bot.admin_panel)
+        current_time = datetime.now().isoformat()
+        await db.add_user_to_users_table(str(message.from_user.id), message.from_user.username, 'Admin', 'Administrator', current_time, '1,2')
     else:
-        username = message.from_user.username
-        if not db.user_exists(username):
+        if message.from_user.username not in [i[0] for i in (await db.if_username_in_user_table())]:
             await message.answer(LEXICON_RU['no_admin_user'])
-            await state.set_state(Bot.no_admin_user)
         else:
-            db.add_user(user_id, username, "No comment")
-            await message.answer(LEXICON_RU['yes_admin_user'],  reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2'))
-            await log_message(user_id, message.text)
-            await state.set_state(Bot.yes_admin_user)
+            all_info_about_user = await db.get_permissions_info_from_users(message.from_user.id)
+            if all_info_about_user[0][-1] == '1,2':
+                await message.answer(LEXICON_RU['yes_admin_user'],  reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2'))
+            if all_info_about_user[0][-1] == '1':
+                await message.answer(LEXICON_RU['yes_admin_user'],  reply_markup=create_standard_kb(2, 'BUTTONS_USER1'))
+            if all_info_about_user[0][-1] == '2':
+                await message.answer(LEXICON_RU['yes_admin_user'],  reply_markup=create_standard_kb(2, 'BUTTONS_USER2'))
 
-    await state.set_state(Bot.start)
+@router.message(F.text == 'ADMIN')
+async def process_username(message: Message):
+    await message.answer('Напишите имя пользователя, комментарий, роль, и разрешения какие действия ему можно делать в формате: username/comment/role/1 или 2 или 1,2')
+
+@router.message(F.text == 'Все юзеры')
+async def response_all_users_button(message: Message):
+    users = await db.all_info_about_users_button()
+    for i in users:
+        await message.answer(text = ', '.join(i))
+
+@router.message(F.text)
+async def append_user_to_user_table(message: Message):
+    username_comment_perms = message.text.split('/')
+    current_time = datetime.now().isoformat()
+    user_id_by_username = await db.get_user_id_from_all_users_table(username_comment_perms[0])
+    await db.add_user_by_admin_to_user_table(user_id_by_username, username_comment_perms[0], username_comment_perms[1], username_comment_perms[2], current_time, username_comment_perms[3])
+    await message.answer(f"Пользователь {username_comment_perms[0]} успешно зарегистрирован.")
 
 
-
-async def log_message(user_id, action):
-    db.add_log(user_id,db.get_username(user_id), action)
-
-
-@router.message(F.text == "Admin")
-async def Admin_panel(message: Message):
-    if message.from_user.id == int(admin_alex_id):
-        await message.answer("Admin", reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2'))
-
-
-@router.message(F.text == "ADMIN")
-async def Admin_Append(message: Message , state: FSMContext):
-    await message.answer(text=LEXICON_RU['waiting_for_username'],
-                         reply_markup=ReplyKeyboardRemove())
-    await state.set_state(Bot.waiting_for_username)
-
-
-
-
-@router.message(StateFilter(Bot.waiting_for_username))
-async def process_username(message: Message, state: FSMContext):
-    username = message.text
-    user_info = await bot.get_chat(username)
-
-    user_id = user_info.id
-
-    comment = f"Добавлен через админскую команду"
-
-    db.add_user(user_id, username, comment)
-
-    await message.answer(f"Пользователь {username} успешно зарегистрирован.")
-
-    await state.set_state(Bot.admin_panel)
 
 
 # Обработчик для кнопки "Действие 1"
-@router.message(F.text == "Действие 1")
-async def handler_button_1(message: Message, state: FSMContext):
-    await message.answer(f'аоаооаоаоаоа213412312')
+# @router.message(F.text == "Действие 1")
+# async def handler_button_1(message: Message):
+#     await message.answer(f'аоаооаоаоаоа213412312')
+#
+#
+# # Обработчик для кнопки "Действие 2"
+# @router.message(F.text == "Действие 2")
+# async def handler_button_2(message: Message):
+#     await message.answer(f'аоаооаоаоаоа')
 
-
-# Обработчик для кнопки "Действие 2"
-@router.message(F.text == "Действие 2")
-async def handler_button_2(message: Message, state: FSMContext):
-    await message.answer(f'аоаооаоаоаоа')
