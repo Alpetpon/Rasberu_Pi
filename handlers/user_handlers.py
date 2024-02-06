@@ -115,4 +115,4 @@ async def append_user_to_user_table(message: Message):
     else:
         await message.answer(text=f'Команда {message.text} не распознана')
         await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
-        await db.change_last_action_in_users_table(message.from_user.id, current_time)
+        await db.change_last_action_in_users_table(message.from_user.id, current_time)а
