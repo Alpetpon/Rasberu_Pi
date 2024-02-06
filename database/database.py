@@ -82,5 +82,7 @@ async def add_logs(user_id,username, text, current_time):
 
 async def change_last_action_in_users_table(user_id, currnet_time):
     async with aiosqlite.connect('userdata.db') as db:
-        await db.execute('UPDATE users SET last_action = ? WHERE user_id = ?', (user_id, currnet_time))
+        await db.execute('UPDATE users SET last_action = ? WHERE user_id = ?', (currnet_time, user_id))
         await db.commit()
+
+# async def change_comment_in_table_users(user_id)
