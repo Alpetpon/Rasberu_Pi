@@ -17,9 +17,18 @@ router = Router()
 config: Config = load_config()
 
 class CnangeComment(StatesGroup):
+    username = State()
     comment = State()
 
+class CnangeRole(StatesGroup):
+    username = State()
+    role = State()
 
+class CnangeLimits(StatesGroup):
+    username = State()
+    daily_limit = State()
+    monthly_limit = State()
+    yearly_limit = State()
 
 @router.message(CommandStart())
 async def process_start_command(message: Message):
@@ -70,7 +79,7 @@ async def response_all_users_button(message: Message):
     for i in users:
         await message.answer(
             text=f'<b>User_id</b>: {i[0]} \n <b>Username</>: {i[1]} \n <b>Comment</>: {i[2]} \n <b>Role</b>: {i[3]} \n <b>Daily limit</b>: {i[4]} \n <b>Monthly limit</b>: {i[5]} \n <b>Yearly limit</b>: {i[6]} \n <b>Last action</b>: {i[7]} \n <b>Permissions</b>: {i[8]}',
-            reply_markup=create_inline_kb(1, f'Изменить комментарий у {i[1]}', 'Изменить роль', 'Изменить лимиты'))
+            reply_markup=create_inline_kb(1, f'Изменить комментарий у {i[1]}', f'Изменить роль у {i[1]}', f'Изменить лимиты у {i[1]}'))
 
 
 @router.message(F.text == "Действие 1")
@@ -88,8 +97,10 @@ async def handler_button_2(message: Message):
     await db.change_last_action_in_users_table(message.from_user.id, current_time)
     await message.answer(f'Кнопка отвечает за действие 2')
 
-@router.callback_query(StateFilter(None), F.data == 'Изменить комментарий')
+@router.callback_query(StateFilter(None), F.data.contains('Изменить комментарий'))
 async def command_response(callback: CallbackQuery, state: FSMContext):
+    username = callback.data.replace('Изменить комментарий у ', '')
+    await state.update_data(username=username)
     await callback.message.answer('Введите новый комментарий')
     await state.set_state(CnangeComment.comment)
 
@@ -97,9 +108,57 @@ async def command_response(callback: CallbackQuery, state: FSMContext):
 async def user_id_entered(message: Message, state: FSMContext):
     await state.update_data(comment=message.text)
     data = await state.get_data()
-    print(data)
-    await message.answer(text = data['comment'])
+    username = data["username"]
+    comment = data['comment']
+    await db.change_comment_in_table_users(username, comment)
+    await message.answer(text = f'У {data["username"]} обновлен комментарий: {data["comment"]}')
     await state.clear()
+
+@router.callback_query(StateFilter(None), F.data.contains('Изменить роль'))
+async def change_role(callback: CallbackQuery, state: FSMContext):
+    username = callback.data.replace('Изменить роль у ', '')
+    await state.update_data(username=username)
+    await callback.message.answer('Введите роль')
+    await state.set_state(CnangeRole.role)
+
+@router.message(CnangeRole.role, F.text)
+async def role_entered(message: Message, state: FSMContext):
+    await state.update_data(role=message.text)
+    data = await state.get_data()
+    username = data["username"]
+    role = data['role']
+    await db.change_role_in_table_users(username, role)
+    await message.answer(text = f'У {data["username"]} обновлена роль: {data["role"]}')
+    await state.clear()
+
+@router.callback_query(StateFilter(None), F.data.contains('Изменить лимиты'))
+async def change_role(callback: CallbackQuery, state: FSMContext):
+    username = callback.data.replace('Изменить лимиты у ', '')
+    await state.update_data(username=username)
+    await callback.message.answer('Введите дневной лимит')
+    await state.set_state(CnangeLimits.daily_limit)
+
+@router.message(CnangeLimits.daily_limit, F.text)
+async def role_entered(message: Message, state: FSMContext):
+    await state.update_data(daily_limit=message.text)
+    await message.answer('Введите месячный лимит')
+    await state.set_state(CnangeLimits.monthly_limit)
+
+@router.message(CnangeLimits.monthly_limit, F.text)
+async def role_entered(message: Message, state: FSMContext):
+    await state.update_data(monthly_limit=message.text)
+    await message.answer('Введите годовой лимит')
+    await state.set_state(CnangeLimits.yearly_limit)
+
+@router.message(CnangeLimits.yearly_limit, F.text)
+async def role_entered(message: Message, state: FSMContext):
+    await state.update_data(yearly_limit=message.text)
+    data = await state.get_data()
+    print(data)
+    await db.change_limits_in_table_users(data['username'], data['daily_limit'], data['monthly_limit'], data['yearly_limit'])
+    await message.answer(f'У пользователя {data["username"]} изменены лемиты: \n <b>дневной:</b> {data["daily_limit"]} \n <b>месячный:</b> {data["monthly_limit"]} \n <b>годовой:</b> {data["yearly_limit"]}')
+    await state.clear()
+
 
 @router.message(F.text)
 async def append_user_to_user_table(message: Message):
@@ -115,4 +174,4 @@ async def append_user_to_user_table(message: Message):
     else:
         await message.answer(text=f'Команда {message.text} не распознана')
         await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
-        await db.change_last_action_in_users_table(message.from_user.id, current_time)а
+        await db.change_last_action_in_users_table(message.from_user.id, current_time)

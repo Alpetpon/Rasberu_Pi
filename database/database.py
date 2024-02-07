@@ -85,4 +85,17 @@ async def change_last_action_in_users_table(user_id, currnet_time):
         await db.execute('UPDATE users SET last_action = ? WHERE user_id = ?', (currnet_time, user_id))
         await db.commit()
 
-# async def change_comment_in_table_users(user_id)
+async def change_comment_in_table_users(username, comment):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute(f'UPDATE users SET comment = ? WHERE username = ?', (comment, username))
+        await db.commit()
+
+async def change_role_in_table_users(username, role):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute(f'UPDATE users SET role = ? WHERE username = ?', (role, username))
+        await db.commit()
+
+async def change_limits_in_table_users(username, daily_limit, monthly_limit, yearly_limit):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute(f'UPDATE users SET daily_limit = ?, monthly_limit = ?, yearly_limit = ?  WHERE username = ?', (daily_limit, monthly_limit,yearly_limit, username))
+        await db.commit()
