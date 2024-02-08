@@ -15,6 +15,8 @@ async def create_database():
         await db.commit()
         await db.execute('CREATE TABLE IF NOT EXISTS all_users (user_id INTEGER PRIMARY KEY, username TEXT)')
         await db.commit()
+        await db.execute('CREATE TABLE IF NOT EXISTS banned (user_id INTEGER PRIMARY KEY, username TEXT)')
+        await db.commit()
 
 
 async def add_user_to_all_user_table(user_id: str, username: str):
@@ -99,3 +101,23 @@ async def change_limits_in_table_users(username, daily_limit, monthly_limit, yea
     async with aiosqlite.connect('userdata.db') as db:
         await db.execute(f'UPDATE users SET daily_limit = ?, monthly_limit = ?, yearly_limit = ?  WHERE username = ?', (daily_limit, monthly_limit,yearly_limit, username))
         await db.commit()
+
+async def delete_user(username):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('DELETE FROM users WHERE username = ?', (username,))
+        await db.commit()
+
+async def add_banned_user(username):
+    async with aiosqlite.connect('userdata.db') as db:
+        cursor = await db.execute('SELECT user_id FROM users WHERE username = ?', (username,))
+        row = await cursor.fetchall()
+        print(row)
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('INSERT OR IGNORE INTO banned VALUES (?, ?)', (row[0][0], username))
+        await db.commit()
+
+async def get_banned_id():
+    async with aiosqlite.connect('userdata.db') as db:
+        cursor = await db.execute('SELECT user_id FROM banned')
+        row = await cursor.fetchall()
+    return row

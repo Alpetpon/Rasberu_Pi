@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
 from keyboards.main_menu import set_main_menu
 from handlers import user_handlers
+from middlewares.middlewares import LimitsMiddleware, BannedUserResponse
 
 
 # Функция конфигурирования и запуска бота
@@ -31,6 +32,8 @@ async def main():
 
     # Настраиваем главное меню бота
     await set_main_menu(bot)
+    user_handlers.router.message.middleware(LimitsMiddleware())
+    user_handlers.router.message.middleware(BannedUserResponse())
     # Регистрируем роутеры в диспетчер
     dp.include_router(user_handlers.router)
     # Пропускаем накопившиеся апдейты и запускаем polling

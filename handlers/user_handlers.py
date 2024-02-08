@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from aiogram import F, Router
 from aiogram.filters import CommandStart
@@ -11,6 +12,8 @@ from lexicon.lexicon_ru import LEXICON_RU
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+import asyncio
+import random
 
 
 router = Router()
@@ -41,7 +44,7 @@ async def process_start_command(message: Message):
         await message.answer(
             text=LEXICON_RU['admin_panel'],
             reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2', 'BUTTONS_ADMIN',
-                                            'BUTTONS_WORD_GENERATION', 'BUTTONS_ALL_USERS')
+                                            'BUTTONS_WORD_GENERATION', 'BUTTONS_ALL_USERS', 'Генерация фразы')
         )
         await db.add_user_to_users_table(str(message.from_user.id),
                                          message.from_user.username, 'Admin', 'Administrator', current_time, '1,2')
@@ -59,7 +62,6 @@ async def process_start_command(message: Message):
             if all_info_about_user[0][-1] == '2':
                 await message.answer(LEXICON_RU['yes_admin_user'],
                                      reply_markup=create_standard_kb(2, 'BUTTONS_USER2'))
-
 
 @router.message(F.text == 'ADMIN')
 async def process_username(message: Message):
@@ -79,7 +81,7 @@ async def response_all_users_button(message: Message):
     for i in users:
         await message.answer(
             text=f'<b>User_id</b>: {i[0]} \n <b>Username</>: {i[1]} \n <b>Comment</>: {i[2]} \n <b>Role</b>: {i[3]} \n <b>Daily limit</b>: {i[4]} \n <b>Monthly limit</b>: {i[5]} \n <b>Yearly limit</b>: {i[6]} \n <b>Last action</b>: {i[7]} \n <b>Permissions</b>: {i[8]}',
-            reply_markup=create_inline_kb(1, f'Изменить комментарий у {i[1]}', f'Изменить роль у {i[1]}', f'Изменить лимиты у {i[1]}'))
+            reply_markup=create_inline_kb(1, f'Изменить комментарий у {i[1]}', f'Изменить роль у {i[1]}', f'Изменить лимиты у {i[1]}', f'Удалить и заблокировать {i[1]}'))
 
 
 @router.message(F.text == "Действие 1")
@@ -88,6 +90,7 @@ async def handler_button_1(message: Message):
     await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
     await db.change_last_action_in_users_table(message.from_user.id, current_time)
     await message.answer(f'Кнопка отвечает за действие 1')
+
 
 
 @router.message(F.text == "Действие 2")
@@ -159,19 +162,32 @@ async def role_entered(message: Message, state: FSMContext):
     await message.answer(f'У пользователя {data["username"]} изменены лемиты: \n <b>дневной:</b> {data["daily_limit"]} \n <b>месячный:</b> {data["monthly_limit"]} \n <b>годовой:</b> {data["yearly_limit"]}')
     await state.clear()
 
+@router.callback_query(F.data.contains('Удалить и заблокировать'))
+async def delete_user(callback: CallbackQuery):
+    username = callback.data.replace('Удалить и заблокировать ', '')
+    print(username)
+    await db.add_banned_user(username)
+    await db.delete_user(username)
+    await callback.message.answer('Пользователь удален и заблокирован')
 
-@router.message(F.text)
+@router.message(F.text.contains('/'))
 async def append_user_to_user_table(message: Message):
     current_time = datetime.now().isoformat()
-    if '/' in message.text:
-        username_comment_perms = message.text.split('/')
-        await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
-        user_id_by_username = await db.get_user_id_from_all_users_table(username_comment_perms[0])
-        await db.add_user_by_admin_to_user_table(user_id_by_username, username_comment_perms[0],
+    username_comment_perms = message.text.split('/')
+    await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
+    user_id_by_username = await db.get_user_id_from_all_users_table(username_comment_perms[0])
+    await db.add_user_by_admin_to_user_table(user_id_by_username, username_comment_perms[0],
                                                  username_comment_perms[1], username_comment_perms[2],
                                                  current_time, username_comment_perms[3])
-        await message.answer(f"Пользователь {username_comment_perms[0]} успешно зарегистрирован.")
-    else:
-        await message.answer(text=f'Команда {message.text} не распознана')
-        await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
-        await db.change_last_action_in_users_table(message.from_user.id, current_time)
+    await message.answer(f"Пользователь {username_comment_perms[0]} успешно зарегистрирован.")
+
+@router.message(F.text == 'Генерация фразы')
+async def change_role(message: Message):
+    with open('russian.txt', 'r') as file:
+        lines = file.readlines()
+    random_line = random.choice(lines)
+    await message.answer(f'Слово для регистрации: {random_line}')
+
+@router.message(F.text)
+async def musor(message:Message):
+    await message.answer(f'Команда <b>{message.text}</b> не поддерживается')
