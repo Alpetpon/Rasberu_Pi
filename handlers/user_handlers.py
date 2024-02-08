@@ -183,7 +183,7 @@ async def append_user_to_user_table(message: Message):
 
 @router.message(F.text == 'Генерация фразы')
 async def change_role(message: Message):
-    with open('russian.txt', 'r') as file:
+    with open('russian.txt', mode = 'r') as file:
         lines = file.readlines()
     random_line = random.choice(lines)
     await message.answer(f'Слово для регистрации: {random_line}')
