@@ -2,20 +2,29 @@ from datetime import datetime
 import aiosqlite
 
 
-async def create_database():
+async def create_users():
     async with aiosqlite.connect('userdata.db') as db:
         await db.execute(
             "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, "
             "username TEXT, comment TEXT, role TEXT, daily_limit INTEGER DEFAULT 0, monthly_limit INTEGER DEFAULT 0, "
             "yearly_limit INTEGER DEFAULT 0, last_action TIMESTAMP, permissions TEXT DEFAULT 0  )")
         await db.commit()
-        await db.execute(
-            "CREATE TABLE IF NOT EXISTS logs (user_id INTEGER , "
-            "username TEXT, action TEXT, last_action TIMESTAMP)")
+async def create_logs():
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('CREATE TABLE IF NOT EXISTS logs (user_id INTEGER, username TEXT, action TEXT, last_action TIMESTAMP)')
         await db.commit()
+
+async def create_all_users():
+    async with aiosqlite.connect('userdata.db') as db:
         await db.execute('CREATE TABLE IF NOT EXISTS all_users (user_id INTEGER PRIMARY KEY, username TEXT)')
         await db.commit()
+async def create_banned():
+    async with aiosqlite.connect('userdata.db') as db:
         await db.execute('CREATE TABLE IF NOT EXISTS banned (user_id INTEGER PRIMARY KEY, username TEXT)')
+        await db.commit()
+async def create_reg_word():
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('CREATE TABLE IF NOT EXISTS reg_word (word TEXT)')
         await db.commit()
 
 
@@ -119,5 +128,32 @@ async def add_banned_user(username):
 async def get_banned_id():
     async with aiosqlite.connect('userdata.db') as db:
         cursor = await db.execute('SELECT user_id FROM banned')
+        row = await cursor.fetchall()
+    return row
+
+async def add_reg_word(word):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('INSERT INTO reg_word VALUES (?)', (word,))
+        await db.commit()
+
+async def update_word(word):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('UPDATE reg_word SET word = ?', (word,))
+        await db.commit()
+
+async def select_word():
+    async with aiosqlite.connect('userdata.db') as conn:
+        cursor = await conn.execute('SELECT * FROM reg_word')
+        row = await cursor.fetchall()
+    return row
+
+async def delete_word():
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('DELETE FROM reg_word')
+        await db.commit()
+
+async def select_limits(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        cursor = await db.execute('SELECT daily_limit, monthly_limit, yearly_limit FROM users WHERE user_id = ?', (user_id,))
         row = await cursor.fetchall()
     return row

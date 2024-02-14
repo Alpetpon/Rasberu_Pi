@@ -7,7 +7,7 @@ LEXICON_RU: dict[str, str] = {
     'BUTTONS_USER2': 'Действие 2',
     'BUTTONS_ADMIN': 'ADMIN',
     'BUTTONS_WORD_GENERATION': 'ГЕНЕРАЦИЯ СЛОВ',
-    'BUTTONS_ALL_USERS': 'ВСЕ ПОЛЬЗОВАТЕЛИ',
+    'BUTTONS_ALL_USERS': 'Все пользователи',
     'no_admin_user': 'Извините, но доступ запрещён. Сначала Вас должен <b>одобрить</b> админ.',
     'yes_admin_user': 'Приветствую! Добро пожаловать в бота.',
     'admin_panel': 'Добро пожаловать! Вы зашли, как <b>Админ</b>.',
@@ -20,7 +20,5 @@ LEXICON_RU: dict[str, str] = {
 
 
 LEXICON_COMMANDS: dict[str, str] = {
-    '/help': 'Помощь | Справки',
-    '/main': 'Вернуться в начало',
     '/start': 'Перезапуск бота'
 }

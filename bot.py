@@ -1,12 +1,10 @@
 import asyncio
 import logging
-
 from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
 from keyboards.main_menu import set_main_menu
 from handlers import user_handlers
-from middlewares.middlewares import LimitsMiddleware, BannedUserResponse
-
+from middlewares.middlewares import LimitsMiddleware, BannedUserResponse, GeneratorWords, PersonLimitsMiddleware
 
 # Функция конфигурирования и запуска бота
 async def main():
@@ -32,8 +30,10 @@ async def main():
 
     # Настраиваем главное меню бота
     await set_main_menu(bot)
-    user_handlers.router.message.middleware(LimitsMiddleware())
+    # user_handlers.router.message.middleware(LimitsMiddleware())
     user_handlers.router.message.middleware(BannedUserResponse())
+    user_handlers.router.message.middleware(GeneratorWords())
+    user_handlers.router.message.middleware(PersonLimitsMiddleware())
     # Регистрируем роутеры в диспетчер
     dp.include_router(user_handlers.router)
     # Пропускаем накопившиеся апдейты и запускаем polling

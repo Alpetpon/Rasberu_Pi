@@ -7,13 +7,13 @@ from database import database as db
 from config_data.config import Config, load_config
 from keyboards.Keyboards import create_standard_kb
 from keyboards.inline_keyboard import create_inline_kb
-from aiogram.types import ReplyKeyboardRemove
 from lexicon.lexicon_ru import LEXICON_RU
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 import asyncio
 import random
+import os
 
 
 router = Router()
@@ -36,7 +36,12 @@ class CnangeLimits(StatesGroup):
 @router.message(CommandStart())
 async def process_start_command(message: Message):
     current_time = datetime.now().isoformat()
-    await db.create_database()
+    await db.create_users()
+    await db.create_logs()
+    await db.create_all_users()
+    await db.create_banned()
+    await db.create_reg_word()
+    time.sleep(3)
     await db.add_user_to_all_user_table(str(message.from_user.id), message.from_user.username)
     await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
     await db.change_last_action_in_users_table(message.from_user.id, current_time)
@@ -44,7 +49,7 @@ async def process_start_command(message: Message):
         await message.answer(
             text=LEXICON_RU['admin_panel'],
             reply_markup=create_standard_kb(2, 'BUTTONS_USER1', 'BUTTONS_USER2', 'BUTTONS_ADMIN',
-                                            'BUTTONS_WORD_GENERATION', 'BUTTONS_ALL_USERS', 'Генерация фразы')
+                                             'BUTTONS_ALL_USERS', 'Генерация фразы')
         )
         await db.add_user_to_users_table(str(message.from_user.id),
                                          message.from_user.username, 'Admin', 'Administrator', current_time, '1,2')
@@ -66,13 +71,12 @@ async def process_start_command(message: Message):
 @router.message(F.text == 'ADMIN')
 async def process_username(message: Message):
     current_time = datetime.now().isoformat()
-    await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
+    await db.add_logs(int(message.from_user.id), message.from_user.username, message.text, current_time)
     await db.change_last_action_in_users_table(message.from_user.id, current_time)
-    await message.answer(LEXICON_RU['waiting_for_username'],
-                         reply_markup=ReplyKeyboardRemove())
+    await message.answer(LEXICON_RU['waiting_for_username'])
 
 
-@router.message(F.text == 'ВСЕ ПОЛЬЗОВАТЕЛИ')
+@router.message(F.text == 'Все пользователи')
 async def response_all_users_button(message: Message):
     current_time = datetime.now().isoformat()
     await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
@@ -84,6 +88,7 @@ async def response_all_users_button(message: Message):
             reply_markup=create_inline_kb(1, f'Изменить комментарий у {i[1]}', f'Изменить роль у {i[1]}', f'Изменить лимиты у {i[1]}', f'Удалить и заблокировать {i[1]}'))
 
 
+#Вот здесь нужно вставить код для работы кнопки действие 1, т.е чтоб выполнялся скрипт rasberu pi
 @router.message(F.text == "Действие 1")
 async def handler_button_1(message: Message):
     current_time = datetime.now().isoformat()
@@ -92,7 +97,7 @@ async def handler_button_1(message: Message):
     await message.answer(f'Кнопка отвечает за действие 1')
 
 
-
+#Вот здесь нужно вставить код для работы кнопки действие 2, т.е чтоб выполнялся скрипт rasberu pi
 @router.message(F.text == "Действие 2")
 async def handler_button_2(message: Message):
     current_time = datetime.now().isoformat()
@@ -183,10 +188,16 @@ async def append_user_to_user_table(message: Message):
 
 @router.message(F.text == 'Генерация фразы')
 async def change_role(message: Message):
-    with open('russian.txt', mode = 'r') as file:
-        lines = file.readlines()
-    random_line = random.choice(lines)
-    await message.answer(f'Слово для регистрации: {random_line}')
+    current_dir = os.path.dirname(__file__)
+    file_path = os.path.join(current_dir, '../middlewares/russian.txt')
+    with open(file_path, mode = 'r') as file:
+        random_line = random.choice(file.readlines())
+    words = await db.select_word()
+    if words == []:
+        await db.add_reg_word(word=random_line)
+    else:
+        await db.update_word(random_line)
+    await message.answer(f'Слово для регистрации: <b>{random_line}</b>')
 
 @router.message(F.text)
 async def musor(message:Message):
