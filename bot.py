@@ -8,6 +8,8 @@ from middlewares.middlewares import BannedUserResponse, GeneratorWords, PersonLi
 from database import database as db
 # Функция конфигурирования и запуска бота
 
+
+
 async def start_bot(bot: Bot):
     await db.create_users()
     await db.create_logs()

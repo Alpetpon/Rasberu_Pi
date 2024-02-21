@@ -10,7 +10,6 @@ from database import database as db
 from config_data.config import Config, load_config
 from keyboards.Keyboards import create_standard_kb
 from aiogram.types import ReplyKeyboardRemove
-from aiogram.fsm.storage.redis import RedisStorage
 import random
 import calendar
 
