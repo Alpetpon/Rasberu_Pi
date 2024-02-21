@@ -11,6 +11,7 @@ from lexicon.lexicon_ru import LEXICON_RU
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from keyboards import users_keyboard
 import asyncio
 import random
 import os
@@ -36,11 +37,6 @@ class CnangeLimits(StatesGroup):
 @router.message(CommandStart())
 async def process_start_command(message: Message):
     current_time = datetime.now().isoformat()
-    await db.create_users()
-    await db.create_logs()
-    await db.create_all_users()
-    await db.create_banned()
-    await db.create_reg_word()
     time.sleep(3)
     await db.add_user_to_all_user_table(str(message.from_user.id), message.from_user.username)
     await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
@@ -82,28 +78,18 @@ async def response_all_users_button(message: Message):
     await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
     await db.change_last_action_in_users_table(message.from_user.id, current_time)
     users = await db.all_info_about_users_button()
-    for i in users:
-        await message.answer(
-            text=f'<b>User_id</b>: {i[0]} \n <b>Username</>: {i[1]} \n <b>Comment</>: {i[2]} \n <b>Role</b>: {i[3]} \n <b>Daily limit</b>: {i[4]} \n <b>Monthly limit</b>: {i[5]} \n <b>Yearly limit</b>: {i[6]} \n <b>Last action</b>: {i[7]} \n <b>Permissions</b>: {i[8]}',
-            reply_markup=create_inline_kb(1, f'Изменить комментарий у {i[1]}', f'Изменить роль у {i[1]}', f'Изменить лимиты у {i[1]}', f'Удалить и заблокировать {i[1]}'))
+    await message.answer('Все зарегистрированные пользователи:', reply_markup=users_keyboard.get_keyboard_fab(users))
+    # for i in users:
 
 
-#Вот здесь нужно вставить код для работы кнопки действие 1, т.е чтоб выполнялся скрипт rasberu pi
-@router.message(F.text == "Действие 1")
-async def handler_button_1(message: Message):
-    current_time = datetime.now().isoformat()
-    await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
-    await db.change_last_action_in_users_table(message.from_user.id, current_time)
-    await message.answer(f'Кнопка отвечает за действие 1')
+@router.callback_query(F.data.contains('Показать '))
+async def show_user(callback: CallbackQuery):
+    username = callback.data.replace('Показать ', '')
+    users = await db.all_info_about_user_button(username)
+    await callback.message.edit_text(
+            text=f'<b>User_id</b>: {users[0][0]} \n <b>Username</>: {users[0][1]} \n <b>Comment</>: {users[0][2]} \n <b>Role</b>: {users[0][3]} \n <b>Daily limit</b>: {users[0][4]} \n <b>Monthly limit</b>: {users[0][5]} \n <b>Yearly limit</b>: {users[0][6]} \n <b>Last action</b>: {users[0][7]} \n <b>Permissions</b>: {users[0][8]}',
+            reply_markup=create_inline_kb(1, f'Изменить комментарий у {users[0][1]}', f'Изменить роль у {users[0][1]}', f'Изменить лимиты у {users[0][1]}', f'Удалить и заблокировать {users[0][1]}'))
 
-
-#Вот здесь нужно вставить код для работы кнопки действие 2, т.е чтоб выполнялся скрипт rasberu pi
-@router.message(F.text == "Действие 2")
-async def handler_button_2(message: Message):
-    current_time = datetime.now().isoformat()
-    await db.add_logs(message.from_user.id, message.from_user.username, message.text, current_time)
-    await db.change_last_action_in_users_table(message.from_user.id, current_time)
-    await message.answer(f'Кнопка отвечает за действие 2')
 
 @router.callback_query(StateFilter(None), F.data.contains('Изменить комментарий'))
 async def command_response(callback: CallbackQuery, state: FSMContext):
@@ -199,6 +185,4 @@ async def change_role(message: Message):
         await db.update_word(random_line)
     await message.answer(f'Слово для регистрации: <b>{random_line}</b>')
 
-@router.message(F.text)
-async def musor(message:Message):
-    await message.answer(f'Команда <b>{message.text}</b> не поддерживается')
+

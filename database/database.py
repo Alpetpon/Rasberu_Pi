@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 import aiosqlite
 
@@ -7,7 +8,7 @@ async def create_users():
         await db.execute(
             "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, "
             "username TEXT, comment TEXT, role TEXT, daily_limit INTEGER DEFAULT 0, monthly_limit INTEGER DEFAULT 0, "
-            "yearly_limit INTEGER DEFAULT 0, last_action TIMESTAMP, permissions TEXT DEFAULT 0  )")
+            "yearly_limit INTEGER DEFAULT 0, def_daily_limit INTEGER DEFAULT 0, def_monthly_limit INTEGER DEFAULT 0, def_yearly_limit INTEGER DEFAULT 0, last_action TIMESTAMP, permissions TEXT DEFAULT 0  )")
         await db.commit()
 async def create_logs():
     async with aiosqlite.connect('userdata.db') as db:
@@ -25,6 +26,16 @@ async def create_banned():
 async def create_reg_word():
     async with aiosqlite.connect('userdata.db') as db:
         await db.execute('CREATE TABLE IF NOT EXISTS reg_word (word TEXT)')
+        await db.commit()
+
+async def create_antiflood_table():
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('CREATE TABLE IF NOT EXISTS antiflood (user_id INTEGER, click_time INTEGER)')
+        await db.commit()
+
+async def create_antiflood5_table():
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('CREATE TABLE IF NOT EXISTS antiflood5 (user_id INTEGER, click_time INTEGER)')
         await db.commit()
 
 
@@ -76,7 +87,7 @@ async def get_permissions_info_from_users(user_id):
 
 async def all_info_about_users_button():
     async with aiosqlite.connect('userdata.db') as conn:
-        cursor = await conn.execute('SELECT * FROM users')
+        cursor = await conn.execute('SELECT user_id,username,comment, role, def_daily_limit, def_monthly_limit, def_yearly_limit, last_action, permissions FROM users')
         row = await cursor.fetchall()
     for i in range(len(row)):
         row[i] = list(row[i])
@@ -85,6 +96,19 @@ async def all_info_about_users_button():
         row[i][5] = str(row[i][5])
         row[i][6] = str(row[i][6])
     return row
+
+async def all_info_about_user_button(username):
+    async with aiosqlite.connect('userdata.db') as conn:
+        cursor = await conn.execute('SELECT user_id,username,comment, role, def_daily_limit, def_monthly_limit, def_yearly_limit, last_action, permissions FROM users WHERE username = ?', (username,))
+        row = await cursor.fetchall()
+    for i in range(len(row)):
+        row[i] = list(row[i])
+        row[i][0] = str(row[i][0])
+        row[i][4] = str(row[i][4])
+        row[i][5] = str(row[i][5])
+        row[i][6] = str(row[i][6])
+    return row
+
 
 async def add_logs(user_id,username, text, current_time):
     async with aiosqlite.connect('userdata.db') as db:
@@ -108,7 +132,7 @@ async def change_role_in_table_users(username, role):
 
 async def change_limits_in_table_users(username, daily_limit, monthly_limit, yearly_limit):
     async with aiosqlite.connect('userdata.db') as db:
-        await db.execute(f'UPDATE users SET daily_limit = ?, monthly_limit = ?, yearly_limit = ?  WHERE username = ?', (daily_limit, monthly_limit,yearly_limit, username))
+        await db.execute(f'UPDATE users SET def_daily_limit = ?, def_monthly_limit = ?, def_yearly_limit = ?, daily_limit = ?, monthly_limit = ?, yearly_limit = ?  WHERE username = ?', (daily_limit, monthly_limit,yearly_limit, daily_limit, monthly_limit,yearly_limit, username))
         await db.commit()
 
 async def delete_user(username):
@@ -157,3 +181,90 @@ async def select_limits(user_id):
         cursor = await db.execute('SELECT daily_limit, monthly_limit, yearly_limit FROM users WHERE user_id = ?', (user_id,))
         row = await cursor.fetchall()
     return row
+
+async def down_limits(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('UPDATE users SET daily_limit = daily_limit - 1, monthly_limit = monthly_limit - 1, yearly_limit = yearly_limit - 1 WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def update_d_limit(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('UPDATE users SET daily_limit = def_daily_limit WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def update_m_limit(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('UPDATE users SET monthly_limit = def_monthly_limit WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def update_y_limit(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('UPDATE users SET yearly_limit = def_yearly_limit WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def def_limits(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        cursor = await db.execute('SELECT def_daily_limit, def_monthly_limit, def_yearly_limit FROM users WHERE user_id = ?', (user_id,))
+        row = await cursor.fetchall()
+    return row
+
+
+async def if_d_l_more_m_l(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('UPDATE users SET daily_limit = monthly_limit WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def if_m_l_more_y_l(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('UPDATE users SET monthly_limit = yearly_limit, daily_limit = yearly_limit WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def add_user_to_antiflood_table(user_id, sec):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('INSERT OR IGNORE INTO antiflood VALUES (?, ?)', (user_id, sec))
+        await db.commit()
+
+
+async def select_time_from_antiflood(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        cursor = await db.execute('SELECT click_time FROM antiflood WHERE user_id = ?', (user_id,))
+        row = await cursor.fetchall()
+    return row
+
+async def delete_user_from_antiflood(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('DELETE FROM antiflood WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def add_user_to_antiflood5_table(user_id, sec):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('INSERT OR IGNORE INTO antiflood5 VALUES (?, ?)', (user_id, sec))
+        await db.commit()
+
+async def select_time_from_antiflood5(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        cursor = await db.execute('SELECT click_time FROM antiflood5 WHERE user_id = ?', (user_id,))
+        row = await cursor.fetchall()
+    return row
+
+async def delete_user_from_antiflood5(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('DELETE FROM antiflood5 WHERE user_id = ?', (user_id,))
+        await db.commit()
+
+async def select_time_from_antiflood5(user_id):
+    async with aiosqlite.connect('userdata.db') as db:
+        cursor = await db.execute('SELECT click_time FROM antiflood5 WHERE user_id = ?', (user_id,))
+        row = await cursor.fetchall()
+    return row
+
+async def delete_all_from_antiflood():
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('DELETE FROM antiflood')
+        await db.commit()
+
+async def delete_all_from_antiflood5():
+    async with aiosqlite.connect('userdata.db') as db:
+        await db.execute('DELETE FROM antiflood5')
+        await db.commit()
+
